@@ -1,3 +1,5 @@
+//TODO to be logged
+
 #include "syscall.h"
 #include "traps.h"
 
@@ -29,3 +31,5 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+SYSCALL(suspend_proc)
+SYSCALL(resume_proc)

@@ -9,6 +9,9 @@ struct spinlock;
 struct stat;
 struct superblock;
 
+//TODO to be logged
+
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
@@ -118,6 +121,9 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int             suspend_proc(void);
+int             resume_proc(void);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);

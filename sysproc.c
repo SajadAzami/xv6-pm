@@ -7,6 +7,18 @@
 #include "mmu.h"
 #include "proc.h"
 
+//TODO to be logged
+
+int
+sys_suspend_proc(void){
+  return suspend_proc();
+}
+
+int
+sys_resume_proc(void){
+  return resume_proc();
+}
+
 int
 sys_fork(void)
 {
