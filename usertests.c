@@ -1674,13 +1674,41 @@ rand() {
 //1 Second Counter
 void
 count(void) {
-    int i;
-    for (i = 0; i < 3; i++) {
-        printf(1, "Count : %d\n", i);
-        sleep(100);
+    int pid;
+
+    pid = fork();
+    if (pid < 0) {
+        printf(1, "error in fork\n");
+        exit();
     }
-    suspend_proc();
-    resume_proc();
+
+    if (pid == 0) {
+        int i;
+        for (i = 0; i < 4; i++) {
+            printf(1, "count : %d\n", i);
+            sleep(50);
+        }
+        suspend_proc();
+        for (i = 4; i < 8; i++) {
+            printf(1, "count : %d\n", i);
+            sleep(50);
+        }
+    }
+
+    wait();
+
+    pid = fork();
+    if (pid < 0) {
+        printf(1, "error in fork\n");
+        exit();
+    }
+
+    if (pid == 0) {
+        resume_proc();
+    }
+
+    wait();
+    exit();
 }
 
 int
@@ -1733,6 +1761,5 @@ main(int argc, char *argv[]) {
 //  exectest();
 
     count();
-
     exit();
 }
