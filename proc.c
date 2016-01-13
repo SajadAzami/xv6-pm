@@ -6,6 +6,9 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "fs.h"
+#include "buf.h"
+#include "file.h"
 //TODO to be logged
 
 struct {
@@ -22,25 +25,6 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
-
-// Implementation of suspend
-int
-suspend_proc(void) {
-    cprintf("suspend called\n");
-    return 0;
-}
-
-// Implementation of resume
-int
-resume_proc(void) {
-    cprintf("resume called\n");
-    return 0;
-}
-
-void
-pinit(void) {
-    initlock(&ptable.lock, "ptable");
-}
 
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
@@ -86,6 +70,74 @@ allocproc(void) {
     p->context->eip = (uint) forkret;
 
     return p;
+}
+
+// Implementation of process suspend
+int
+suspend_proc(void) {
+    cprintf("suspending process ...\n");
+    int i, pid;
+    struct proc *np;
+    if ((np = allocproc()) == 0)
+        return -1;
+
+    // Copy process state from p.
+    if ((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0) {
+        kfree(np->kstack);
+        np->kstack = 0;
+        np->state = UNUSED;
+        return -1;
+    }
+    np->sz = proc->sz;
+    np->parent = proc;
+    *np->tf = *proc->tf;
+
+    // Clear %eax so that fork returns 0 in the child.
+    np->tf->eax = 0;
+
+    for (i = 0; i < NOFILE; i++)
+        if (proc->ofile[i])
+            np->ofile[i] = filedup(proc->ofile[i]);
+    np->cwd = idup(proc->cwd);
+
+    safestrcpy(np->name, proc->name, sizeof(proc->name));
+
+    pid = np->pid;
+
+    // Allocate process.
+    struct buf *buffer = bread(0, 512);
+
+    cprintf("process %s suspended\nprocess id: %d\nsize: %d\n", proc->name, proc->pid,
+            proc->sz);
+
+    memmove(buffer->data, proc, sizeof(*proc));
+    bwrite(buffer);
+    brelse(buffer);
+
+    exit();
+    return pid;
+}
+
+
+// Implementation of process resume
+int
+resume_proc(void) {
+    cprintf("resuming process ...\n");
+
+    struct buf *buffer = bread(0, 512);
+    struct proc proc_states;
+
+    memmove(&proc_states, buffer->data, sizeof(*proc));
+
+    cprintf("process state of %s is loaded\nprocess id: %d\nsize: %d\n", proc->name, proc->pid,
+            proc->sz);
+
+    return 0;
+}
+
+void
+pinit(void) {
+    initlock(&ptable.lock, "ptable");
 }
 
 //PAGEBREAK: 32
