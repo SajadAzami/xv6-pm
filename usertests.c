@@ -1707,6 +1707,25 @@ count(void) {
     exit();
 }
 
+//void
+//count_resume(void) {
+//    int pid;
+//
+//    // Fork new process
+//    pid = fork();
+//    if (pid < 0) {
+//        printf(1, "error in fork\n");
+//        exit();
+//    }
+//
+//    if (pid == 0) {
+//        resume_proc();
+//    }
+//    wait();
+//    exit();
+//}
+
+
 int
 main(int argc, char *argv[]) {
 //  printf(1, "usertests starting\n");
@@ -1756,6 +1775,11 @@ main(int argc, char *argv[]) {
 //  bigdir(); // slow
 //  exectest();
 
+//    if (argc == 1) {
+//        count();
+//    } else {
+//        count_resume();
+//    }
     count();
     exit();
 }
