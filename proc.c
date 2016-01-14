@@ -104,12 +104,15 @@ suspend_proc(void) {
 
     pid = np->pid;
 
-    // Allocate process.
-    struct buf *buffer = bread(0, 512);
+    // Allocate process
+    struct buf *buffer = bread(1, 800);
 
-    cprintf("process %s suspended\nprocess id: %d\nsize: %d\n", proc->name, proc->pid,
+    cprintf("#############################\n");
+    cprintf("#process %s suspended\n#process id: %d\n#size: %d\n", proc->name, proc->pid,
             proc->sz);
+    cprintf("#############################\n");
 
+    // Write proc state to buffer
     memmove(buffer->data, proc, sizeof(*proc));
     bwrite(buffer);
     brelse(buffer);
@@ -124,15 +127,50 @@ int
 resume_proc(void) {
     cprintf("resuming process ...\n");
 
-    struct buf *buffer = bread(0, 512);
-    struct proc proc_states;
+    // Read process state from buffer
+    struct buf *buffer = bread(1, 800);
 
-    memmove(&proc_states, buffer->data, sizeof(*proc));
+    int pid;
+    struct proc *p_load;
+    p_load = (struct proc *) buffer->data;
+    brelse(buffer);
+    struct proc *np;
 
-    cprintf("process state of %s is loaded\nprocess id: %d\nsize: %d\n", proc->name, proc->pid,
-            proc->sz);
+    // Allocate process.
+    if ((np = allocproc()) == 0)
+        return -1;
 
-    return 0;
+    // Just like the fork function, but this time, we copy states from p_load, not proc
+    // Copy process state from p_load.
+    if ((np->pgdir = copyuvm(p_load->pgdir, p_load->sz)) == 0) {
+        kfree(np->kstack);
+        np->kstack = 0;
+        np->state = UNUSED;
+        return -1;
+    }
+    np->sz = p_load->sz;
+    np->parent = p_load;
+    *np->tf = *p_load->tf;
+
+    // Clear %eax so that fork returns 0 in the child.
+    np->tf->eax = 0;
+    int i;
+    for (i = 0; i < NOFILE; i++)
+        if (p_load->ofile[i])
+            np->ofile[i] = filedup(p_load->ofile[i]);
+    np->cwd = idup(p_load->cwd);
+
+    safestrcpy(np->name, p_load->name, sizeof(p_load->name));
+
+    pid = np->pid;
+
+    // lock to force the compiler to emit the np->state write last.
+    acquire(&ptable.lock);
+    np->state = RUNNABLE;
+    release(&ptable.lock);
+
+    return pid;
+
 }
 
 void
