@@ -123,6 +123,7 @@ void            wakeup(void*);
 void            yield(void);
 int             suspend_proc(void);
 int             resume_proc(void);
+int             resume_proc2(void);
 
 
 // swtch.S

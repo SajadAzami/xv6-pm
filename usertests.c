@@ -1673,7 +1673,7 @@ rand() {
 
 //1 Second Counter
 void
-count(void) {
+count_approach1(void) {
     int pid;
 
     // Fork new process
@@ -1707,24 +1707,55 @@ count(void) {
     exit();
 }
 
-//void
-//count_resume(void) {
-//    int pid;
-//
-//    // Fork new process
-//    pid = fork();
-//    if (pid < 0) {
-//        printf(1, "error in fork\n");
-//        exit();
-//    }
-//
-//    if (pid == 0) {
-//        resume_proc();
-//    }
-//    wait();
-//    exit();
-//}
+// Second approach's resume
+void
+count_resume(void) {
+    int pid;
 
+    // Fork new process
+    pid = fork();
+    if (pid < 0) {
+        printf(1, "error in fork\n");
+        exit();
+    }
+
+    if (pid == 0) {
+        resume_proc2();
+    }
+    wait();
+    exit();
+}
+
+// Second approach's start
+void
+count_stop(void) {
+    int pid;
+
+    // Fork new process
+    pid = fork();
+    if (pid < 0) {
+        printf(1, "error in fork\n");
+        exit();
+    }
+
+    if (pid == 0) {
+        int i;
+        for (i = 0; i < 4; i++) {
+            printf(1, "count : %d\n", i);
+            sleep(50);
+        }
+        // Call to suspend_proc to save process state
+        // PC will remain here
+        suspend_proc();
+        // resume_proc should start PC from here
+        for (i = 4; i < 8; i++) {
+            printf(1, "count : %d\n", i);
+            sleep(50);
+        }
+    }
+    wait();
+    exit();
+}
 
 int
 main(int argc, char *argv[]) {
@@ -1775,11 +1806,20 @@ main(int argc, char *argv[]) {
 //  bigdir(); // slow
 //  exectest();
 
-//    if (argc == 1) {
-//        count();
-//    } else {
-//        count_resume();
-//    }
-    count();
+
+    if (atoi(argv[1]) == 1) {
+        count_stop();
+    } else if (atoi(argv[1]) == 2) {
+        count_resume();
+    }
+    else if (atoi(argv[1]) == 3) {
+        count_approach1();
+    } else {
+        printf(1, "pass argument to usertests:\n"
+                "1 : start count\n"
+                "2 : resume count\n"
+                "3 : do a start and stop continuously\n");
+    }
+
     exit();
 }

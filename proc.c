@@ -121,6 +121,11 @@ suspend_proc(void) {
     return pid;
 }
 
+int
+resume_proc2(void) {
+
+    return 0;
+}
 
 // Implementation of process resume
 int
