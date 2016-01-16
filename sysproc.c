@@ -25,6 +25,11 @@ sys_resume_proc2(void) {
 }
 
 int
+sys_suspend_proc2(void) {
+    return suspend_proc2();
+}
+
+int
 sys_fork(void) {
     return fork();
 }

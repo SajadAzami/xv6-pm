@@ -25,3 +25,4 @@
 #define SYS_suspend_proc 22
 #define SYS_resume_proc 23
 #define SYS_resume_proc2 24
+#define SYS_suspend_proc2 25

@@ -122,10 +122,18 @@ suspend_proc(void) {
 }
 
 int
+suspend_proc2(void) {
+    cprintf("suspending process using approach 2 ...\n");
+    return 0;
+}
+
+int
 resume_proc2(void) {
+    cprintf("resuming process using approach 2 ...\n");
 
     return 0;
 }
+
 
 // Implementation of process resume
 int
