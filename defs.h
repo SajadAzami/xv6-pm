@@ -27,6 +27,9 @@ void            panic(char*) __attribute__((noreturn));
 // exec.c
 int             exec(char*, char**);
 
+// sysfile.c
+int             open_file(char *, int);
+
 // file.c
 struct file*    filealloc(void);
 void            fileclose(struct file*);
@@ -105,6 +108,7 @@ void            pipeclose(struct pipe*, int);
 int             piperead(struct pipe*, char*, int);
 int             pipewrite(struct pipe*, char*, int);
 
+
 //PAGEBREAK: 16
 // proc.c
 struct proc*    copyproc(struct proc*);
@@ -147,6 +151,9 @@ char*           safestrcpy(char*, const char*, int);
 int             strlen(const char*);
 int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
+char            itoa(int s);
+void            strncat(char *dst, char *src1, char *src2, uint n);
+
 
 // syscall.c
 int             argint(int, int*);
@@ -186,6 +193,9 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+char            *ptable_to_memory(pde_t *pgdir, int va);
+int             memory_to_ptable(pde_t *pgdir, const void *va, char *mem);
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -9,6 +9,9 @@
 #include "fs.h"
 #include "buf.h"
 #include "file.h"
+#include "fcntl.h"
+
+
 //TODO to be logged
 
 struct {
@@ -121,24 +124,12 @@ suspend_proc(void) {
     return pid;
 }
 
-int
-suspend_proc2(void) {
-    cprintf("suspending process using approach 2 ...\n");
-    return 0;
-}
-
-int
-resume_proc2(void) {
-    cprintf("resuming process using approach 2 ...\n");
-
-    return 0;
-}
-
 
 // Implementation of process resume
 int
 resume_proc(void) {
     cprintf("resuming process ...\n");
+
 
     // Read process state from buffer
     struct buf *buffer = bread(1, 800);
@@ -185,6 +176,136 @@ resume_proc(void) {
     return pid;
 
 }
+
+// Write struct p to file
+void
+file_write(struct proc *p, char *name, char *data) {
+    int fd;
+    struct file *file;
+
+    if ((fd = open_file(name, O_CREATE | O_RDWR)) < 0) {
+        panic("opening file failed\n");
+    }
+    file = p->ofile[fd];
+    if ((filewrite(file, data, PGSIZE)) != PGSIZE)
+        panic("writing file failed\n");
+}
+
+
+// Write struct p's page table to file
+static void
+file_write_pagetable(struct proc *p, char *name, int va) {
+    char *memory = ptable_to_memory(proc->pgdir, va);
+    file_write(p, name, memory);
+    kfree(memory);
+}
+
+// Write struct p's page tables to file
+int
+file_write_pagetable_all(struct proc *p, char *name) {
+    int size = strlen(name), i, counter = 0;
+    char final_name[size + 1];
+
+    for (i = 0; i < p->sz; i += PGSIZE) {
+        char c = itoa(counter);
+        strncat(final_name, name, &c, 1);
+        file_write_pagetable(p, final_name, i);
+        counter++;
+    }
+
+    return counter;
+}
+
+// Read from file
+void
+file_read(struct proc *p, char *name, void *data, int size) {
+    int fd;
+    struct file *file;
+    if ((fd = open_file(name, O_RDONLY)) < 0)
+        panic("load_process: open_file failed\n");
+    file = p->ofile[fd];
+    if ((fileread(file, (char *) data, size)) != size)
+        panic("load_process: fileread failed\n");
+}
+
+// Read page table from file
+static char *
+file_read_pagetabels(struct proc *p, char *name) {
+    char *memory = kalloc();
+    file_read(p, name, memory, PGSIZE);
+    return memory;
+}
+
+// Read page tables from file
+void
+file_map_pagetables(struct proc *current_proc, char *name, struct proc *res_proc, int p_size) {
+    int i, counter = 0, size = strlen(name);
+    char final_name[size + 1];
+
+    for (i = 0; i < p_size; i += PGSIZE) {
+        char c = itoa(counter);
+        strncat(final_name, name, &c, 1);
+        char *data = file_read_pagetabels(current_proc, final_name);
+
+        if ((memory_to_ptable(res_proc->pgdir, (void *) i, data)) < 0)
+            panic("load_process: memory to pagetable mapping failed\n");
+
+        counter++;
+    }
+}
+
+
+int
+suspend_proc2(void) {
+    cprintf("suspending process using approach 2 ...\n");
+
+    file_write(proc, "procstats", (char *) proc);
+    file_write(proc, "trapframes", (char *) proc->tf);
+    file_write_pagetable_all(proc, "pagetables");
+
+    cprintf("suspend_proc2 says: successful!\n");
+    exit();
+    return 0;
+}
+
+int
+resume_proc2(void) {
+    cprintf("resuming process using approach 2 ...\n");
+
+    struct proc *ld_proc;
+    if ((ld_proc = allocproc()) == 0)
+        return 0;
+    ld_proc->pgdir = setupkvm();
+
+    struct proc p;
+    file_read(proc, "procstats", &p, sizeof(struct proc));
+    memset(ld_proc->tf, 0, sizeof(struct trapframe));
+
+    file_read(proc, "trapframes", ld_proc->tf, sizeof(struct trapframe));
+
+    file_map_pagetables(proc, "pagetables", ld_proc, p.sz);
+
+    ld_proc->sz = p.sz;
+    // Make the current process parent of the resumed process
+    ld_proc->parent = proc;
+
+    int i;
+    for (i = 0; i < NOFILE; i++)
+        if (p.ofile[i])
+            ld_proc->ofile[i] = filedup(p.ofile[i]);
+    ld_proc->cwd = idup(p.cwd);
+
+    safestrcpy(ld_proc->name, p.name, sizeof(p.name));
+
+    // lock to force the compiler to emit the np->state write last.
+    acquire(&ptable.lock);
+    ld_proc->state = RUNNABLE;
+    release(&ptable.lock);
+
+
+    return 0;
+}
+
 
 void
 pinit(void) {

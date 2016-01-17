@@ -70,6 +70,6 @@ set(SOURCE_FILES
     vm.c
     wc.c
     x86.h
-    zombie.c)
+    zombie.c file_handler.c file_handler.h count.c count.h)
 
 add_executable(xv6_public ${SOURCE_FILES})
